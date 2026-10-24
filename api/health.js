@@ -9,6 +9,7 @@ export default async function handler(req, res) {
     database_reachable: false,
     saved_content_found: false,
     blob_storage_connected: hasBlob(),
+    storage_variable_names_found: Object.keys(process.env).filter((n) => /KV_|REDIS|UPSTASH|BLOB|READ_WRITE|STORAGE/i.test(n)),
   };
   if (hasRedis()) {
     try {
