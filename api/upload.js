@@ -18,16 +18,24 @@ export default async function handler(req, res) {
     const buf = await readRaw(req);
     if (!buf.length) return res.status(400).json({ error: "The file arrived empty. Please try again." });
 
+    let blobError = "";
     if (hasBlob()) {
-      const { put } = await import("@vercel/blob");
-      const blob = await put("samay/media." + ext, buf, { access: "public", contentType: type, addRandomSuffix: true, token: blobToken() });
-      return res.status(200).json({ url: blob.url });
+      try {
+        const { put } = await import("@vercel/blob");
+        const opts = { access: "public", contentType: type, addRandomSuffix: true };
+        if (blobToken()) opts.token = blobToken();
+        const blob = await put("samay/media." + ext, buf, opts);
+        return res.status(200).json({ url: blob.url });
+      } catch (e) {
+        blobError = String(e.message || e);
+      }
     }
     if (type.startsWith("image/") && hasRedis() && buf.length <= 600 * 1024) {
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       await redis(["SET", "samay:media:" + id, type + "|" + buf.toString("base64")]);
       return res.status(200).json({ url: "/api/media?id=" + id });
     }
+    if (blobError) return res.status(500).json({ error: "Blob upload failed: " + blobError });
     return res.status(503).json({
       error: type.startsWith("video/")
         ? "Videos need Blob storage. In Vercel open Storage, create a Blob store, connect it to this project and redeploy."
