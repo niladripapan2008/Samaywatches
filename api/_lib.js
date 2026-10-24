@@ -11,22 +11,44 @@ const find = (...endings) => {
 };
 const URL_ = () => find("KV_REST_API_URL", "UPSTASH_REDIS_REST_URL");
 const TOK = () => find("KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN");
+const REDIS_URL = () => find("REDIS_URL", "KV_URL");
 export const blobToken = () => find("BLOB_READ_WRITE_TOKEN", "READ_WRITE_TOKEN");
 
-export const hasRedis = () => !!(URL_() && TOK());
-export const hasBlob = () => !!blobToken();
+export const hasRest = () => !!(URL_() && TOK());
+export const hasTcp = () => /^rediss?:\/\//.test(REDIS_URL());
+export const hasRedis = () => hasRest() || hasTcp();
+export const hasBlob = () => !!(blobToken() || find("BLOB_STORE_ID"));
 export const hasPass = () => !!process.env.OWNER_PASSCODE;
 
+let tcp; // one shared connection per running function
+async function tcpClient() {
+  if (!tcp) {
+    tcp = (async () => {
+      const { createClient } = await import("redis");
+      const c = createClient({ url: REDIS_URL(), socket: { connectTimeout: 6000 } });
+      c.on("error", () => { tcp = null; });
+      await c.connect();
+      return c;
+    })();
+    tcp.catch(() => { tcp = null; });
+  }
+  return tcp;
+}
+
 export async function redis(cmd) {
-  if (!hasRedis()) throw new Error("Database not connected. In Vercel open Storage, create an Upstash Redis database and connect it to this project, then redeploy.");
-  const r = await fetch(URL_(), {
-    method: "POST",
-    headers: { Authorization: "Bearer " + TOK() },
-    body: JSON.stringify(cmd),
-  });
-  const j = await r.json().catch(() => ({}));
-  if (j.error) throw new Error("Database error: " + j.error);
-  return j.result;
+  if (!hasRedis()) throw new Error("Database not connected. In Vercel open Storage, create a Redis database and connect it to this project, then redeploy.");
+  if (hasRest()) {
+    const r = await fetch(URL_(), {
+      method: "POST",
+      headers: { Authorization: "Bearer " + TOK() },
+      body: JSON.stringify(cmd),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error("Database error: " + j.error);
+    return j.result;
+  }
+  const c = await tcpClient();
+  return c.sendCommand(cmd.map(String));
 }
 
 const sha = (s) => createHash("sha256").update(String(s)).digest();
