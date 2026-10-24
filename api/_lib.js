@@ -1,10 +1,20 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
-const URL_ = () => process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const TOK = () => process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+// Vercel may add a prefix (for example STORAGE_) to the variable names when a database is
+// connected, so look for the names by their ending instead of an exact match.
+const find = (...endings) => {
+  for (const e of endings) {
+    const k = Object.keys(process.env).find((n) => n === e || n.endsWith("_" + e));
+    if (k && process.env[k]) return process.env[k];
+  }
+  return "";
+};
+const URL_ = () => find("KV_REST_API_URL", "UPSTASH_REDIS_REST_URL");
+const TOK = () => find("KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN");
+export const blobToken = () => find("BLOB_READ_WRITE_TOKEN", "READ_WRITE_TOKEN");
 
 export const hasRedis = () => !!(URL_() && TOK());
-export const hasBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN;
+export const hasBlob = () => !!blobToken();
 export const hasPass = () => !!process.env.OWNER_PASSCODE;
 
 export async function redis(cmd) {
