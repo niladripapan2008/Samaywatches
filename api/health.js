@@ -1,4 +1,4 @@
-import { hasRedis, hasBlob, hasPass, redis } from "./_lib.js";
+import { hasRedis, hasRest, hasBlob, hasPass, redis } from "./_lib.js";
 
 // Open  https://your-site.vercel.app/api/health  to check the setup. No secrets are shown.
 export default async function handler(req, res) {
@@ -6,6 +6,7 @@ export default async function handler(req, res) {
     api_running: true,
     OWNER_PASSCODE_set: hasPass(),
     database_connected: hasRedis(),
+    database_kind: hasRest() ? "REST" : hasRedis() ? "REDIS_URL" : "none",
     database_reachable: false,
     saved_content_found: false,
     blob_storage_connected: hasBlob(),
