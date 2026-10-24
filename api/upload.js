@@ -1,4 +1,4 @@
-import { isOwner, readRaw, redis, hasBlob, hasRedis, hasPass } from "./_lib.js";
+import { isOwner, readRaw, redis, hasBlob, hasRedis, hasPass, blobToken } from "./_lib.js";
 
 const OK = {
   "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     if (hasBlob()) {
       const { put } = await import("@vercel/blob");
-      const blob = await put("samay/media." + ext, buf, { access: "public", contentType: type, addRandomSuffix: true });
+      const blob = await put("samay/media." + ext, buf, { access: "public", contentType: type, addRandomSuffix: true, token: blobToken() });
       return res.status(200).json({ url: blob.url });
     }
     if (type.startsWith("image/") && hasRedis() && buf.length <= 600 * 1024) {
