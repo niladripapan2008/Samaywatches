@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>SAMAY – Owner database</title>
+<style>
+:root{--bg:#f6f3ea;--card:#fff;--ink:#1c1c1c;--mut:#666;--navy:#14213d;--gold:#c9a24b;--line:#ddd6c3;--red:#b00020;--ok:#1b7a3a;--hit:#fff3c4;--chg:#dff3e3}
+@media(prefers-color-scheme:dark){:root{--bg:#10141f;--card:#1a2030;--ink:#eee;--mut:#9aa3b5;--navy:#c9a24b;--line:#2d3550;--hit:#4a4020;--chg:#1f3a28}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Arial,sans-serif;padding:env(safe-area-inset-top,0) 0 40px}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:2px solid var(--gold);padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+header h1{font:700 18px Georgia,serif;margin:0;color:var(--navy)}
+#q{flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card);color:var(--ink)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--navy);background:var(--card);color:var(--ink);padding:8px 12px}
+button.pri{background:var(--navy);color:#fff}@media(prefers-color-scheme:dark){button.pri{color:#10141f}}
+button.red{border-color:var(--red);color:var(--red)}button:disabled{opacity:.5;cursor:default}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px}
+.tabs button.on{background:var(--navy);color:#fff}@media(prefers-color-scheme:dark){.tabs button.on{color:#10141f}}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 14px 8px}
+.bar .grow{flex:1}.note{color:var(--mut);font-size:12.5px}
+.sec{padding:0 14px;margin-bottom:22px}.sec h2{font:700 16px Georgia,serif;margin:10px 0 6px;color:var(--navy)}
+.wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);max-height:70vh}
+table{border-collapse:collapse;width:max-content;min-width:100%}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;vertical-align:top}
+th{position:sticky;top:0;background:var(--card);padding:7px 8px;text-align:left;font-size:12px;white-space:nowrap;z-index:1;border-bottom:2px solid var(--gold)}
+td input,td select{width:100%;min-width:110px;border:0;background:transparent;color:inherit;font:inherit;padding:7px 8px;outline:none}
+td.w input{min-width:230px}td.f{background:rgba(128,128,128,.12);color:var(--mut);padding:7px 8px;white-space:nowrap}
+td.hit{background:var(--hit)}td.chg{background:var(--chg)}td input:focus{box-shadow:inset 0 0 0 2px var(--gold)}
+td.act{padding:4px 6px;white-space:nowrap;position:sticky;right:0;background:var(--card)}
+.msg{margin:8px 14px;padding:10px 12px;border-radius:8px;display:none}.msg.err{display:block;background:#fde7e7;color:var(--red)}.msg.ok{display:block;background:#e3f4e8;color:var(--ok)}
+#login{max-width:340px;margin:12vh auto;background:var(--card);padding:22px;border-radius:12px;border-top:4px solid var(--gold)}
+#login input{width:100%;padding:10px;margin:10px 0;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card);color:var(--ink)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.modal form{background:var(--card);border-radius:12px;padding:18px;width:100%;max-width:440px;max-height:90vh;overflow:auto}
+.modal label{display:block;font-weight:600;margin:10px 0 3px;font-size:12.5px}.modal input{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card);color:var(--ink)}
+.empty{padding:16px;color:var(--mut)}
+</style></head><body>
+
+<div id="login" hidden>
+  <h1 style="font:700 20px Georgia,serif;margin:0;color:var(--navy)">SAMAY owner database</h1>
+  <input id="pw" type="password" placeholder="Owner passcode" autocomplete="current-password">
+  <button class="pri" id="pwgo" style="width:100%">Sign in</button>
+  <p id="pwerr" class="note" style="color:var(--red)"></p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>SAMAY database</h1>
+    <input id="q" type="search" placeholder="Search everything: name, phone, address, code, order id, item, note…" autocomplete="off">
+    <button id="reload">Reload</button>
+    <button id="out">Sign out</button>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <div class="bar">
+    <button class="pri" id="save" disabled>Save changes</button>
+    <button id="discard" disabled>Discard</button>
+    <button id="add">+ Add row</button>
+    <button id="csv">Export CSV</button>
+    <button id="showall" hidden>Show referral code to ALL customers</button>
+    <button id="hideall" hidden>Hide referral code from ALL customers</button>
+    <button id="rnd" class="red" hidden>Make ALL codes random</button>
+    <span class="grow note" id="status"></span>
+  </div>
+  <div id="msg" class="msg"></div>
+  <div id="view"></div>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var DATA=null, TAB='Customers', EDITS={}, PW='';
+  try{PW=localStorage.getItem('samay_pw')||''}catch(e){}
+
+  function call(body){
+    return fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json','x-owner-pass':PW},body:JSON.stringify(body)})
+      .then(function(r){return r.json().catch(function(){return{ok:false,error:'Server error ('+r.status+')'}}).then(function(j){j.status=r.status;return j})})
+      .catch(function(){return{ok:false,error:'Could not reach the server.'}});
+  }
+  function say(t,ok){var m=$('msg');m.className='msg '+(t?(ok?'ok':'err'):'');m.textContent=t||''}
+  function key(s,r,c){return s+'|'+r+'|'+c}
+
+  function load(){
+    say('');$('status').textContent='Loading…';
+    return call({action:'adminLoad'}).then(function(j){
+      if(j.status===401){PW='';try{localStorage.removeItem('samay_pw')}catch(e){}show(false);$('pwerr').textContent='Wrong passcode.';return}
+      if(!j.ok){$('status').textContent='';say(j.error||'Could not load.');show(true);return}
+      DATA=j.sheets;EDITS={};show(true);draw();
+      $('status').textContent='Loaded '+new Date().toLocaleTimeString();
+    });
+  }
+  function show(app){$('login').hidden=app;$('app').hidden=!app}
+
+  $('pwgo').onclick=function(){PW=$('pw').value;if(!PW)return;try{localStorage.setItem('samay_pw',PW)}catch(e){}$('pwerr').textContent='';load()};
+  $('pw').onkeydown=function(e){if(e.key==='Enter')$('pwgo').click()};
+  $('out').onclick=function(){try{localStorage.removeItem('samay_pw')}catch(e){}PW='';DATA=null;show(false)};
+  $('reload').onclick=function(){if(Object.keys(EDITS).length&&!confirm('Discard your unsaved changes and reload?'))return;load()};
+  $('discard').onclick=function(){EDITS={};draw()};
+  var qt;$('q').oninput=function(){clearTimeout(qt);qt=setTimeout(function(){if($('q').value.trim())TAB='ALL';draw()},150)};
+
+  /* ---- search ---- */
+  function norm(s){return String(s).toLowerCase()}
+  function rowHit(row,q,qd){
+    var hits=[];
+    for(var i=0;i<row.c.length;i++){
+      var v=cur(row,i),n=norm(v);
+      if(n.indexOf(q)>=0||(qd.length>=3&&v.replace(/\D/g,'').indexOf(qd)>=0))hits.push(i);
+    }
+    return hits;
+  }
+  function cur(row,i){var e=EDITS[key(row._s,row.r,i+1)];return e?e.nw:row.c[i]}
+
+  /* ---- drawing ---- */
+  function names(){return Object.keys(DATA||{})}
+  function draw(){
+    if(!DATA)return;
+    var q=norm($('q').value.trim()),qd=q.replace(/\D/g,''),tabs=$('tabs');tabs.innerHTML='';
+    var counts={};
+    names().forEach(function(n){DATA[n].rows.forEach(function(r){r._s=n});counts[n]=q?DATA[n].rows.filter(function(r){return rowHit(r,q,qd).length}).length:DATA[n].rows.length});
+    var all=document.createElement('button');all.textContent=q?'All results ('+names().reduce(function(a,n){return a+counts[n]},0)+')':'All sheets';all.className=TAB==='ALL'?'on':'';all.onclick=function(){TAB='ALL';draw()};tabs.appendChild(all);
+    names().forEach(function(n){var b=document.createElement('button');b.textContent=n+' ('+counts[n]+')';b.className=TAB===n?'on':'';b.onclick=function(){TAB=n;draw()};tabs.appendChild(b)});
+    var v=$('view');v.innerHTML='';
+    (TAB==='ALL'?names():[TAB]).forEach(function(n){if(!DATA[n])return;var rows=DATA[n].rows.filter(function(r){return !q||rowHit(r,q,qd).length});if(TAB==='ALL'&&!rows.length)return;v.appendChild(section(n,rows,q,qd))});
+    if(!v.children.length){var d=document.createElement('div');d.className='empty';d.textContent='Nothing found.';v.appendChild(d)}
+    var n=Object.keys(EDITS).length;$('save').disabled=!n;$('discard').disabled=!n;$('save').textContent=n?'Save changes ('+n+')':'Save changes';
+    $('add').disabled=TAB==='ALL'||(DATA[TAB]&&DATA[TAB].mode==='none');$('csv').disabled=TAB==='ALL';$('showall').hidden=$('hideall').hidden=$('rnd').hidden=TAB!=='Customers';
+  }
+
+  function section(name,rows,q,qd){
+    var S=DATA[name],sec=document.createElement('div');sec.className='sec';
+    var h=document.createElement('h2');h.textContent=name+' – '+rows.length+(rows.length===1?' row':' rows');sec.appendChild(h);
+    var w=document.createElement('div');w.className='wrap';var t=document.createElement('table'),thr=document.createElement('tr');
+    S.headers.forEach(function(x){var th=document.createElement('th');th.textContent=x;thr.appendChild(th)});
+    if(S.mode!=='none'){var a=document.createElement('th');a.textContent='';thr.appendChild(a)}
+    var thead=document.createElement('thead');thead.appendChild(thr);t.appendChild(thead);
+    var tb=document.createElement('tbody');
+    rows.forEach(function(row){
+      var tr=document.createElement('tr'),hits=q?rowHit(row,q,qd):[];
+      row.c.forEach(function(orig,i){
+        var td=document.createElement('td'),hd=S.headers[i]||'';
+        if(row.f[i]==='1'){td.className='f';td.textContent=orig;tr.appendChild(td);return}
+        var k=key(name,row.r,i+1),val=cur(row,i),inp;
+        if(/yes\s*\/\s*no/i.test(hd)){inp=document.createElement('select');['','Yes','No'].forEach(function(o){var op=document.createElement('option');op.value=o;op.textContent=o||'—';inp.appendChild(op)});inp.value=val}
+        else{inp=document.createElement('input');var isD=/date/i.test(hd)&&!/time/i.test(hd)&&(val===''||/^\d{4}-\d\d-\d\d$/.test(val));inp.type=isD?'date':'text';inp.value=val}
+        if(/address|items|notes|link/i.test(hd))td.className='w';
+        if(hits.indexOf(i)>=0)td.className+=' hit';
+        if(EDITS[k])td.className+=' chg';
+        (function(inp,td,k,row,i){
+          inp.onchange=function(){
+            var o=row.c[i];
+            if(inp.value===o)delete EDITS[k];else EDITS[k]={s:name,r:row.r,c:i+1,old:o,nw:inp.value};
+            td.classList.toggle('chg',!!EDITS[k]);
+            var n=Object.keys(EDITS).length;$('save').disabled=!n;$('discard').disabled=!n;$('save').textContent=n?'Save changes ('+n+')':'Save changes';
+          };
+        })(inp,td,k,row,i);
+        td.appendChild(inp);tr.appendChild(td);
+      });
+      if(S.mode!=='none'){
+        var ta=document.createElement('td');ta.className='act';var b=document.createElement('button');b.className='red';b.textContent=S.mode==='delete'?'Delete':'Clear';
+        b.onclick=function(){
+          var who=row.c[0]||row.c[1]||('row '+row.r);
+          if(!confirm((S.mode==='delete'?'Delete':'Clear')+' this row ('+who+') from '+name+'? This cannot be undone.'))return;
+          call({action:'adminDelete',sheet:name,row:row.r}).then(function(j){if(!j.ok)return say(j.error);say('Done.',true);load()});
+        };
+        ta.appendChild(b);tr.appendChild(ta);
+      }
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);w.appendChild(t);sec.appendChild(w);return sec;
+  }
+
+  /* ---- save ---- */
+  $('save').onclick=function(){
+    var by={};Object.keys(EDITS).forEach(function(k){var e=EDITS[k];(by[e.s]=by[e.s]||[]).push({r:e.r,c:e.c,old:e.old,'new':e.nw})});
+    var sheets=Object.keys(by);if(!sheets.length)return;
+    $('save').disabled=true;say('Saving…',true);
+    var i=0,saved=0;
+    (function next(){
+      if(i>=sheets.length){say('Saved '+saved+' change'+(saved===1?'':'s')+'.',true);return load().then(function(){say('Saved '+saved+' change'+(saved===1?'':'s')+'.',true)})}
+      var s=sheets[i++];
+      call({action:'adminUpdate',sheet:s,edits:by[s]}).then(function(j){
+        if(!j.ok){say(s+': '+j.error);$('save').disabled=false;return}
+        saved+=j.saved;by[s].forEach(function(e){delete EDITS[key(s,e.r,e.c)]});next();
+      });
+    })();
+  };
+
+  /* ---- add row ---- */
+  $('add').onclick=function(){
+    var S=DATA[TAB];if(!S)return;
+    var m=document.createElement('div');m.className='modal';var f=document.createElement('form');
+    var h=document.createElement('h2');h.textContent='Add to '+TAB;h.style.margin='0 0 6px';f.appendChild(h);
+    var ins=[];
+    S.headers.forEach(function(hd,i){
+      if(/\(auto/i.test(hd))return;
+      var l=document.createElement('label');l.textContent=hd;var inp=document.createElement('input');
+      inp.type=(/date/i.test(hd)&&!/time/i.test(hd))?'date':'text';f.appendChild(l);f.appendChild(inp);ins.push({i:i,inp:inp});
+    });
+    var er=document.createElement('p');er.className='note';er.style.color='var(--red)';f.appendChild(er);
+    var row=document.createElement('div');row.style.cssText='display:flex;gap:8px;margin-top:12px';
+    var ok=document.createElement('button');ok.className='pri';ok.type='submit';ok.textContent='Add';
+    var no=document.createElement('button');no.type='button';no.textContent='Cancel';no.onclick=function(){m.remove()};
+    row.appendChild(ok);row.appendChild(no);f.appendChild(row);m.appendChild(f);document.body.appendChild(m);
+    if(ins[0])ins[0].inp.focus();
+    f.onsubmit=function(e){
+      e.preventDefault();var vals=S.headers.map(function(){return ''});ins.forEach(function(x){vals[x.i]=x.inp.value});
+      ok.disabled=true;er.textContent='';
+      call({action:'adminAdd',sheet:TAB,values:vals}).then(function(j){ok.disabled=false;if(!j.ok){er.textContent=j.error;return}m.remove();say('Added'+(j.code?' – referral code '+j.code:'')+'.',true);load().then(function(){say('Added'+(j.code?' – referral code '+j.code:'')+'.',true)})});
+    };
+  };
+
+  /* ---- show / hide referral codes for everyone ---- */
+  function bulk(v){
+    if(Object.keys(EDITS).length){say('Please save or discard your changes first.');return}
+    if(!confirm((v==='Yes'?'SHOW':'HIDE')+' the referral code '+(v==='Yes'?'to':'from')+' all customers? You can still change single customers afterwards.'))return;
+    call({action:'adminBulk',sheet:'Customers',value:v}).then(function(j){if(!j.ok)return say(j.error);load().then(function(){say('Done: referral code is now "'+j.value+'" for '+j.count+' customers.',true)})});
+  }
+  $('rnd').onclick=function(){
+    if(Object.keys(EDITS).length){say('Please save or discard your changes first.');return}
+    if(!confirm('Give EVERY existing customer a new random referral code?\n\nOld codes will stop working. Past referrals are updated automatically so cashback stays correct. New sign-ups already get random codes.'))return;
+    call({action:'adminRandomCodes',sheet:'Customers'}).then(function(j){if(!j.ok)return say(j.error);load().then(function(){say('Done: '+j.count+' customers now have random codes.',true)})});
+  };
+  $('showall').onclick=function(){bulk('Yes')};$('hideall').onclick=function(){bulk('No')};
+
+  /* ---- csv ---- */
+  $('csv').onclick=function(){
+    var S=DATA[TAB];if(!S)return;
+    var esc=function(s){s=String(s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+    var lines=[S.headers.map(esc).join(',')];S.rows.forEach(function(r){lines.push(r.c.map(esc).join(','))});
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'}));a.download='samay-'+TAB.replace(/\s+/g,'-').toLowerCase()+'.csv';a.click();
+  };
+
+  window.onbeforeunload=function(){return Object.keys(EDITS).length?'You have unsaved changes.':undefined};
+  if(PW){show(true);load()}else show(false);
+})();
+</script>
+</body></html>
