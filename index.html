@@ -531,6 +531,6 @@ var cache=function(){try{return JSON.parse(localStorage.getItem("samay_remote_ca
 var t=setTimeout(function(){if(!window.__REMOTE)window.__REMOTE=cache();go()},4500);
 fetch("/api/data",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&typeof d==="object"){window.__REMOTE=d;try{localStorage.setItem("samay_remote_cache",JSON.stringify(d))}catch(e){}}else if(!window.__REMOTE)window.__REMOTE=cache()},function(){window.__REMOTE=cache()}).then(function(){clearTimeout(t);go()});})();
 </script>
-<script>window.SAMAY_REFERRAL={apiUrl:"https://script.google.com/macros/s/AKfycbwAUFWkQebciwq7TaBhwVpLRMss0pW2NQmyN9ko--QveBjnaxObidG7WMMJ0gfWfT1v/exec"};if(/^PASTE_/.test(window.SAMAY_REFERRAL.apiUrl))window.SAMAY_REFERRAL.apiUrl="";</script>
+<script>window.SAMAY_REFERRAL={apiUrl:"https://script.google.com/macros/s/AKfycbzOPQsjyz_A_J-emh4tvTulilP7-2kI5tE2J6soFtbmHnokd-tNuodwl9jTOyPDDCdw/exec"};if(/^PASTE_/.test(window.SAMAY_REFERRAL.apiUrl))window.SAMAY_REFERRAL.apiUrl="";</script>
 <script src="samay-referral.js?v=otp6"></script>
 </body></html>
