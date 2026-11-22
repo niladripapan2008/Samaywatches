@@ -132,7 +132,12 @@
     '.sr-cb .sr-row{align-items:stretch;margin-top:8px}',
     '.sr-cb .sr-row input{flex:2;width:auto;min-width:0;text-transform:uppercase;letter-spacing:.06em;box-sizing:border-box;padding:11px 14px}',
     '.sr-cb .sr-row button{flex:1}',
-    '@media(prefers-reduced-motion:reduce){.sr-btn,.sr-go,.sr-row button{transition:none}}'
+    '.sr-btn{transition:box-shadow .2s,transform .2s,padding .3s ease,bottom .3s ease}',
+        '.sr-ic{display:inline-block;margin-right:.4em;transition:margin .3s ease}',
+        '.sr-lb{display:inline-block;max-width:12em;overflow:hidden;white-space:nowrap;vertical-align:bottom;transition:max-width .3s ease,opacity .2s ease}',
+        'body.w-open .sr-btn{display:none!important}',
+        '@media(max-width:760px){body.samay-detail .sr-btn{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;padding:0;font-size:1.3rem;bottom:calc(84px + env(safe-area-inset-bottom,0px))}body.samay-detail .sr-lb{max-width:0;opacity:0}body.samay-detail .sr-ic{margin-right:0}}',
+        '@media(prefers-reduced-motion:reduce){.sr-btn,.sr-lb,.sr-go,.sr-row button{transition:none}}'
   ].join('');
   document.head.appendChild(h('style', { text: css }));
 
@@ -302,7 +307,7 @@
 
   /* ---------- floating button ---------- */
   if (CFG.showButton) {
-    var fb = h('button', { class: 'sr-btn', text: '\uD83C\uDF81 Refer & Earn', onclick: function () { open(); } });
+    var fb = h('button', { class: 'sr-btn', 'aria-label': 'Refer & Earn', title: 'Refer & Earn', onclick: function () { open(); } }, [h('span', { class: 'sr-ic', text: '\uD83C\uDF81' }), h('span', { class: 'sr-lb', text: 'Refer & Earn' })]);
     fb.style[CFG.buttonPosition === 'right' ? 'right' : 'left'] = '18px';
     document.body.appendChild(fb);
   }
